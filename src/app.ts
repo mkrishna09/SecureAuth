@@ -1,0 +1,27 @@
+import express from "express";
+import { requestLogger } from "./middleware/requestLogger";
+import { errorHandler } from "./shared/errors/errorHandler";
+import { AppError } from "./shared/errors/AppError";
+
+const app = express();
+
+app.use(express.json());
+app.use(requestLogger);
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      status: "OK",
+      message: "SecureAuth API is running",
+    },
+  });
+});
+
+app.get("/error", (_req, _res) => {
+  throw new AppError("This is a test error", 400);
+});
+
+app.use(errorHandler);
+
+export default app;
