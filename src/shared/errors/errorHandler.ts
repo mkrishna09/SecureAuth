@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "./AppError";
 import logger from "../../logger/logger";
-
+import { ZodError } from "zod";
 
 export function errorHandler(
   err: Error,
@@ -10,6 +10,18 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): void {
+  if (err instanceof ZodError) {
+  res.status(400).json({
+    success: false,
+    message: "Validation failed.",
+    errors: err.issues.map((issue) => ({
+      field: issue.path.join("."),
+      message: issue.message,
+    })),
+  });
+
+  return;
+  }
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
       success: false,
@@ -21,12 +33,10 @@ export function errorHandler(
     return;
   }
 
-  logger.error(err);
-
+  logger.error(err.stack || err.message || "Unknown error");
   res.status(500).json({
     success: false,
-    error: {
-      message: "Internal Server Error",
-    },
+    message: "Internal Server Error",
   });
+
 }

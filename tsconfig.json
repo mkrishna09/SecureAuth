@@ -29,7 +29,10 @@
     "sourceMap": true
   },
 
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
+  "types": ["node"],
 
   "exclude": [
     "node_modules",

@@ -2,7 +2,10 @@ import express from "express";
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./shared/errors/errorHandler";
 import { AppError } from "./shared/errors/AppError";
-
+import { registerSchema } from "./modules/auth/auth.validation";
+import {z} from "zod";
+import { validate } from "./middleware/validate";
+import authRoutes from "./modules/auth/auth.routes";
 const app = express();
 
 app.use(express.json());
@@ -21,6 +24,8 @@ app.get("/health", (_req, res) => {
 app.get("/error", (_req, _res) => {
   throw new AppError("This is a test error", 400);
 });
+
+app.use("/auth", authRoutes);
 
 app.use(errorHandler);
 
