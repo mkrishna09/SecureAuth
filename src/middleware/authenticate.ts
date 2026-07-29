@@ -1,14 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { verifyAccessToken } from "../utils/jwt";
 
 import config from "../config/env";
 import { AppError } from "../shared/errors/AppError";
-
-interface AuthTokenPayload {
-  sub: string;
-  email: string;
-  role: string;
-}
 
 export function authenticate(
   req: Request,
@@ -24,19 +18,34 @@ export function authenticate(
 
     const [scheme, token] = authHeader.split(" ");
 
-    if (!token || scheme !== "Bearer") {
+    if (scheme !== "Bearer" || !token) {
       throw new AppError("Invalid authorization header.", 401);
     }
 
-    const decoded = jwt.verify(
-      token,
-      config.jwt.accessSecret
-    );
+    const decoded = verifyAccessToken(token);
 
-    next();
+    if (
+      typeof decoded === "string" ||
+      typeof decoded.sub !== "string" ||
+      typeof decoded.email !== "string" ||
+      typeof decoded.role !== "string"
+    ) {
+      throw new AppError("Invalid token.", 401);
+    }
 
+    req.user = {
+      id: decoded.sub,
+      email: decoded.email,
+      role: decoded.role,
+    };
+
+    return next();
   } catch (error) {
-    next(
+    if (error instanceof AppError) {
+      return next(error);
+    }
+
+    return next(
       new AppError(
         "Invalid or expired token.",
         401

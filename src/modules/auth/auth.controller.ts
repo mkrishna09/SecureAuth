@@ -5,8 +5,8 @@ import { RegisterInput } from "./auth.validation";
 
 import { LoginInput } from "./auth.validation";
 import { loginUser } from "./auth.services";
+import config from "../../config/env";
 
-import { generateAccessToken } from "../../utils/jwt";
 
 export async function register(
   req: Request<{}, {}, RegisterInput>,
@@ -32,26 +32,33 @@ export async function login(
   next: NextFunction
 ) {
   try {
-    const user = await loginUser(req.body);
+    const result = await loginUser(req.body);
 
-    const accessToken = generateAccessToken({
-        sub: user.id,
-        email: user.email,
-        role: user.role,
+    res.cookie("refreshToken", result.refreshToken, {
+    httpOnly: true,
+    secure: config.nodeEnv === "production",
+    sameSite: "lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
     });
-
+   
     res.status(200).json({
       success: true,
       message: "Login successful.",
-      data: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-      accessToken,
+      data: result.user,
+      accessToken: result.accessToken,
+      
     });
   } catch (error) {
     next(error);
   }
+}
+
+export function me(
+  req: Request,
+  res: Response
+) {
+  res.status(200).json({
+    success: true,
+    data: req.user,
+  });
 }

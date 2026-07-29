@@ -6,9 +6,12 @@ import { registerSchema } from "./modules/auth/auth.validation";
 import {z} from "zod";
 import { validate } from "./middleware/validate";
 import authRoutes from "./modules/auth/auth.routes";
+import cookieParser from "cookie-parser";
+
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(requestLogger);
 
 app.get("/health", (_req, res) => {
