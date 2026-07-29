@@ -7,6 +7,11 @@ import { LoginInput } from "./auth.validation";
 import { loginUser } from "./auth.services";
 import config from "../../config/env";
 
+import { refreshAccessToken } from "./auth.services";
+import { AppError } from "../../shared/errors/AppError";
+import { logout as logoutUser } from "./auth.services";
+
+
 
 export async function register(
   req: Request<{}, {}, RegisterInput>,
@@ -61,4 +66,66 @@ export function me(
     success: true,
     data: req.user,
   });
+}
+
+export async function refresh(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      throw new AppError(
+        "Refresh token missing.",
+        401
+      );
+    }
+
+    const result = await refreshAccessToken(
+      refreshToken
+    );
+
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: config.nodeEnv === "production",
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      accessToken: result.accessToken,
+    });
+
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function logout(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    await logoutUser(
+      req.cookies?.refreshToken
+    );
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: config.nodeEnv === "production",
+      sameSite: "lax",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully.",
+    });
+
+  } catch (error) {
+    next(error);
+  }
 }

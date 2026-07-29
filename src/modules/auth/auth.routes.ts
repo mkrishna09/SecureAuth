@@ -1,16 +1,20 @@
 import { Router } from "express";
 
-import { register, login } from "./auth.controller";
-import { 
-    registerSchema,
-    loginSchema
+import {
+  register,
+  login,
+  me,
+  refresh,
+} from "./auth.controller";
 
- } from "./auth.validation";
-import { validate } from "../../middleware/validate";
-
-import { me } from "./auth.controller";
 import { authenticate } from "../../middleware/authenticate";
+import { validate } from "../../middleware/validate";
+import {
+  registerSchema,
+  loginSchema,
+} from "./auth.validation";
 import { authorize } from "../../middleware/authorize";
+import { logout } from "./auth.controller";
 
 const router = Router();
 
@@ -24,6 +28,16 @@ router.post(
   "/login",
   validate(loginSchema),
   login
+);
+
+router.post(
+  "/refresh",
+  refresh
+);
+
+router.post(
+  "/logout",
+  logout
 );
 
 router.get(
