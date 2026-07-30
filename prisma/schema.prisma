@@ -29,6 +29,8 @@ model User {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   refreshTokens RefreshToken[]
+  passwordResetTokenHash String?
+  passwordResetExpiresAt DateTime?
 }
 
 model RefreshToken {

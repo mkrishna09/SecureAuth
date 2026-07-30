@@ -1,23 +1,63 @@
-function requireEnv(name: string): string {
-  const value = process.env[name];
+import { z } from "zod";
 
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
+const envSchema = z.object({
+  // Application
+  PORT: z.coerce.number().default(3000),
 
-  return value;
-}
+  NODE_ENV: z.enum([
+    "development",
+    "production",
+    "test",
+  ]),
 
-const config = {
-  port: Number(process.env.PORT) || 3000,
+  // Database
+  DATABASE_URL: z.string().url(),
 
-  nodeEnv: process.env.NODE_ENV || "development",
+  // JWT
+  JWT_ACCESS_SECRET: z.string().min(
+    32,
+    "JWT_ACCESS_SECRET must be at least 32 characters."
+  ),
+
+  JWT_REFRESH_SECRET: z.string().min(
+    32,
+    "JWT_REFRESH_SECRET must be at least 32 characters."
+  ),
+
+  // Mailtrap SMTP
+  MAIL_HOST: z.string().min(1),
+
+  MAIL_PORT: z.coerce.number(),
+
+  MAIL_USER: z.string().min(1),
+
+  MAIL_PASS: z.string().min(1),
+
+  MAIL_FROM: z.string().email().or(
+    z.string().regex(/^.+<.+@.+>$/)
+  ),
+});
+
+const env = envSchema.parse(process.env);
+
+export default {
+  port: env.PORT,
+  nodeEnv: env.NODE_ENV,
+
+  database: {
+    url: env.DATABASE_URL,
+  },
 
   jwt: {
-    accessSecret: requireEnv("JWT_ACCESS_SECRET"),
+    accessSecret: env.JWT_ACCESS_SECRET,
+    refreshSecret: env.JWT_REFRESH_SECRET,
+  },
 
-    refreshSecret: requireEnv("JWT_REFRESH_SECRET"),
+  mail: {
+    host: env.MAIL_HOST,
+    port: env.MAIL_PORT,
+    user: env.MAIL_USER,
+    pass: env.MAIL_PASS,
+    from: env.MAIL_FROM,
   },
 };
-
-export default config;

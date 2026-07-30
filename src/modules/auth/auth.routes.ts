@@ -5,6 +5,8 @@ import {
   login,
   me,
   refresh,
+  forgotPassword,
+  resetPassword,
 } from "./auth.controller";
 
 import { authenticate } from "../../middleware/authenticate";
@@ -12,9 +14,13 @@ import { validate } from "../../middleware/validate";
 import {
   registerSchema,
   loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "./auth.validation";
 import { authorize } from "../../middleware/authorize";
 import { logout } from "./auth.controller";
+import { logoutAll} from "./auth.controller";
+import { loginRateLimiter } from "../../middleware/rateLimiter";
 
 const router = Router();
 
@@ -26,6 +32,7 @@ router.post(
 
 router.post(
   "/login",
+  loginRateLimiter,
   validate(loginSchema),
   login
 );
@@ -40,10 +47,28 @@ router.post(
   logout
 );
 
+router.post(
+  "/logout-all",
+  authenticate,
+  logoutAll
+);
+
+router.post(
+  "/forgot-password",
+  validate(forgotPasswordSchema),
+  forgotPassword
+);
+
 router.get(
   "/me",
   authenticate,
   me
+);
+
+router.post(
+  "/reset-password",
+  validate(resetPasswordSchema),
+  resetPassword
 );
 
 router.get(

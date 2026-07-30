@@ -13,6 +13,11 @@ import {
 
 import { hashToken } from "../../utils/hash";
 import { ref } from "node:process";
+import { generateRandomToken } from "../../utils/token";
+import { sendEmail } from "../../utils/mail";
+import {
+  resetPassword as resetPasswordService,
+} from "./auth.services";
 
 export async function registerUser(input: RegisterInput) {
   // Normalize email
@@ -204,4 +209,122 @@ export async function logout(
       tokenHash,
     },
   });
+}
+
+export async function logoutAll(
+  userId: string
+) {
+  await prisma.refreshToken.deleteMany({
+    where: {
+      userId,
+    },
+  });
+}
+
+export async function forgotPassword(email: string) {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email: normalizedEmail,
+    },
+  });
+
+  // Don't reveal whether the email exists
+  if (!user) {
+    return;
+  }
+
+  const resetToken = generateRandomToken();
+
+  const tokenHash = hashToken(resetToken);
+
+  const expiresAt = new Date(
+    Date.now() + 15 * 60 * 1000
+  );
+
+  await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      passwordResetTokenHash: tokenHash,
+      passwordResetExpiresAt: expiresAt,
+    },
+  });
+
+  const resetLink =
+    `http://localhost:3000/reset-password?token=${resetToken}`;
+
+  await sendEmail(
+    user.email,
+    "Reset your password",
+    `
+      <h2>Password Reset</h2>
+
+      <p>Click the link below to reset your password.</p>
+
+      <a href="${resetLink}">
+        Reset Password
+      </a>
+
+      <p>This link expires in 15 minutes.</p>
+    `
+  );
+}
+
+export async function resetPassword(
+  token: string,
+  password: string
+) {
+  const tokenHash = hashToken(token);
+
+  const user = await prisma.user.findFirst({
+    where: {
+      passwordResetTokenHash: tokenHash,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(
+      "Invalid or expired reset token.",
+      400
+    );
+  }
+
+  if (
+    !user.passwordResetExpiresAt ||
+    user.passwordResetExpiresAt < new Date()
+  ) {
+    throw new AppError(
+      "Reset token has expired.",
+      400
+    );
+  }
+
+  const passwordHash = await bcrypt.hash(
+    password,
+    12
+  );
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        passwordHash,
+
+        passwordResetTokenHash: null,
+
+        passwordResetExpiresAt: null,
+      },
+    }),
+
+    prisma.refreshToken.deleteMany({
+      where: {
+        userId: user.id,
+      },
+    }),
+  ]);
 }
