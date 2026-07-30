@@ -11,7 +11,7 @@ const envSchema = z.object({
   ]),
 
   // Database
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.string().min(1),
 
   // JWT
   JWT_ACCESS_SECRET: z.string().min(
