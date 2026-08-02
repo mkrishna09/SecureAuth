@@ -255,7 +255,7 @@ SecureAuth is deployed using:
 
 GitHub: https://github.com/mkrishna09
 
-LinkedIn: https://www.linkedin.com/in/krishna-maheshwari/
+LinkedIn: https://linkedin.com/in/krishna-maheshwari-5ab072298
 
 ---
 
